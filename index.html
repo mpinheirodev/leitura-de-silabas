@@ -3,9 +3,16 @@
 <head>
   <title>Gráfico de Frequência da Voz</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background-color: LightSkyBlue;
+      color: white;
+    }
+  </style>
 </head>
 <body>
-  <h1>Projeto BA - DI</h1>
+  <h1>Projeto BÁ - DI</h1>
   <input type="text" id="syllableInput" placeholder="Digite sílabas sem vírgulas">
   <button onclick="speakSyllables()">Ler</button>
   <label for="volumeInput">Volume:</label>
@@ -18,22 +25,17 @@
   <button onclick="generateChart()">Gerar Gráfico</button>
   <button onclick="clearChart()">Limpar Gráfico</button>
   <canvas id="voiceChart"></canvas>
-  
+
   <script>
     let frequencyData = [];
     let chart;
     let syllables = [];
 
     function speakSyllables() {
-      // Obtém o valor das sílabas inseridas no campo de texto
       let syllableInput = document.getElementById("syllableInput").value.toLowerCase();
-      
-      // Remove as vírgulas da entrada
       syllables = syllableInput.replace(/,/g, "").split(" ").map(s => s.trim());
       
-      // Verifica se o navegador suporta a síntese de voz
       if ('speechSynthesis' in window) {
-        // Inicia a leitura das sílabas
         speakSyllable(0);
       } else {
         console.log("O navegador não suporta a síntese de voz.");
@@ -42,63 +44,52 @@
     
     function speakSyllable(index) {
       if (index >= syllables.length) {
-        // Todas as sílabas foram lidas, encerra a função
         return;
       }
       
-      // Obtém a sílaba atual
       let syllable = syllables[index];
-      
-      // Cria um objeto SpeechSynthesisUtterance com a sílaba a ser lida
       let utterance = new SpeechSynthesisUtterance(syllable);
       
-      // Obtém o valor do volume do campo de entrada
       let volume = parseFloat(document.getElementById("volumeInput").value);
-      
-      // Obtém o valor da velocidade do campo de entrada
       let speed = parseFloat(document.getElementById("speedInput").value);
       
-      // Define o volume e a velocidade da síntese de voz
       utterance.volume = volume / 10;
       utterance.rate = speed;
       
-      // Inicia a síntese de voz da sílaba atual
       window.speechSynthesis.speak(utterance);
       
-      // Calcula a frequência da sílaba e adiciona ao array
       let frequency = syllable.length;
       frequencyData.push(frequency);
       
-      // Obtém o valor do tempo de pausa do campo de entrada
       let pauseTime = parseInt(document.getElementById("pauseInput").value);
       
-      // Chama a função para ler a próxima sílaba após o tempo de pausa
       setTimeout(function() {
         speakSyllable(index + 1);
       }, pauseTime);
     }
     
     function updateVolume() {
-      // Obtém o valor do volume do campo de entrada
       let volume = parseFloat(document.getElementById("volumeInput").value);
-      
-      // Atualiza o gráfico com o volume atual
       frequencyData.push(volume);
     }
     
     function generateChart() {
-      // Configura o gráfico
       let ctx = document.getElementById("voiceChart").getContext("2d");
+      
+      if (chart) {
+        chart.destroy();
+      }
+      
       chart = new Chart(ctx, {
-        type: "line", // Alterado para o tipo de gráfico "line"
+        type: "line",
         data: {
           labels: Array.from({ length: frequencyData.length }, (_, i) => i + 1),
           datasets: [{
-            label: "Frequência da Voz",
+            label: "Projeto BÁ - DI",
             data: frequencyData,
-            backgroundColor: "rgba(75, 192, 192, 0.5)",
-            borderColor: "rgba(75, 192, 192, 1)",
-            borderWidth: 1
+            backgroundColor: "LightSkyBlue",
+            borderColor: "red",
+            borderWidth: 3
           }]
         },
         options: {
@@ -106,6 +97,9 @@
           scales: {
             x: {
               display: true,
+              grid: {
+                color: "white"
+              },
               title: {
                 display: true,
                 text: "Leitura"
@@ -113,6 +107,9 @@
             },
             y: {
               display: true,
+              grid: {
+                color: "white"
+              },
               title: {
                 display: true,
                 text: "Frequência"
@@ -125,10 +122,11 @@
     }
     
     function clearChart() {
-      // Limpa os dados do gráfico e atualiza
       frequencyData = [];
-      chart.data.datasets[0].data = frequencyData;
-      chart.update();
+      if (chart) {
+        chart.data.datasets[0].data = frequencyData;
+        chart.update();
+      }
     }
   </script>
 </body>
