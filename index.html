@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,128 +7,231 @@
 
   <style>
     body {
-      background-color: LightSkyBlue;
+      background-color: RoyalBlue;
       color: white;
+    }
+
+    .link{
+      text-decoration: none;
+      border: 1px solid black;
+      border-radius: 2px;
+      color: black;
+      background-color: white;
+      padding: 5px;
     }
   </style>
 </head>
 <body>
-  <h1>Projeto BÁ - DI</h1>
-  <input type="text" id="syllableInput" placeholder="Digite sílabas sem vírgulas">
-  <button onclick="speakSyllables()">Ler</button>
+  <h1>SoundDiscern</h1>
+  <div>
+    <a class="link" href="./site02.html">Reconhecimento de Fala</a>
+  </div>
+  <br>
+  <div>
+    <button onclick="generateSyllable('BÁ')">Gerar BÁ</button>
+    <input type="number" id="generateCountBÁ" placeholder="Quantidade">
+    <button onclick="generateSyllable('DI')">Gerar DI</button>
+    <input type="number" id="generateCountDI" placeholder="Quantidade">
+    <button onclick="generateOnlyBÁ()">Gerar Só BÁ</button>
+    <button onclick="generateOnlyDI()">Gerar Só DI</button>
+    <button onclick="generateRandomSyllables()">Gerar Aleatoriamente</button>
+  </div>
+  <div>
+    <input type="text" id="syllableInput" placeholder="Digite sílabas sem vírgulas">
+  </div>
+  <button onclick="playSyllables()">Play</button>
   <label for="volumeInput">Volume:</label>
-  <input type="number" id="volumeInput" min="0" max="10" step="0.1" value="5">
+  <input type="number" id="volumeInput" min="0" max="10" step="0.1" placeholder="Volume">
   <label for="speedInput">Velocidade:</label>
-  <input type="number" id="speedInput" min="1" max="10" value="5">
+  <input type="number" id="speedInput" min="1" max="10" placeholder="Velocidade">
   <label for="pauseInput">Pausa (ms):</label>
-  <input type="number" id="pauseInput" min="500" max="5000" step="100" value="2000">
-  <button onclick="updateVolume()">Atualizar Volume</button>
-  <button onclick="generateChart()">Gerar Gráfico</button>
-  <button onclick="clearChart()">Limpar Gráfico</button>
+  <input type="number" id="pauseInput" min="0.00000001" max="5000" step="0.00001" placeholder="Pausa (ms)">
   <canvas id="voiceChart"></canvas>
+  <div>
+    <input type="text" id="answerInput" placeholder="Digite as quantidades de sílabas ouvidas">
+  </div>
+  <button onclick="clearData()">Limpar Dados</button>
+  <button onclick="saveChart()">Salvar Gráfico</button>
 
   <script>
-    let frequencyData = [];
+    const frequencyData = [];
     let chart;
+    let synthesizer;
     let syllables = [];
 
-    function speakSyllables() {
-      let syllableInput = document.getElementById("syllableInput").value.toLowerCase();
-      syllables = syllableInput.replace(/,/g, "").split(" ").map(s => s.trim());
-      
-      if ('speechSynthesis' in window) {
-        speakSyllable(0);
-      } else {
-        console.log("O navegador não suporta a síntese de voz.");
+    function initializeSynthesizer() {
+      synthesizer = window.speechSynthesis;
+      initializeChart();
+    }
+
+    function generateSyllable(syllable) {
+      const countInputId = `generateCount${syllable}`;
+      const countInput = document.getElementById(countInputId);
+      const count = parseInt(countInput.value, 10) || 1;
+
+      const syllableArray = generateSyllableArray(count, syllable);
+      syllables = syllables.concat(syllableArray);
+      updateSyllableInput();
+    }
+
+    function generateOnlyBÁ() {
+      const generateCountBÁ = parseInt(document.getElementById("generateCountBÁ").value, 10) || 0;
+      syllables = generateSyllableArray(generateCountBÁ, 'BÁ');
+      updateSyllableInput();
+    }
+
+    function generateOnlyDI() {
+      const generateCountDI = parseInt(document.getElementById("generateCountDI").value, 10) || 0;
+      syllables = generateSyllableArray(generateCountDI, 'DI');
+      updateSyllableInput();
+    }
+
+    function generateRandomSyllables() {
+      const generateCountBÁ = parseInt(document.getElementById("generateCountBÁ").value, 10) || 0;
+      const generateCountDI = parseInt(document.getElementById("generateCountDI").value, 10) || 0;
+
+      const mixedSyllables = generateMixedSyllables(generateCountBÁ, generateCountDI);
+
+      syllables = mixedSyllables;
+      updateSyllableInput();
+    }
+
+    function generateSyllableArray(count, syllable) {
+      const syllableArray = [];
+      for (let i = 0; i < count; i++) {
+        syllableArray.push(syllable);
+      }
+      return syllableArray;
+    }
+
+    function generateMixedSyllables(countBÁ, countDI) {
+      const mixedSyllables = [];
+      while (countBÁ > 0 || countDI > 0) {
+        if (countBÁ > 0) {
+          mixedSyllables.push("BÁ");
+          countBÁ--;
+        }
+        if (countDI > 0) {
+          mixedSyllables.push("DI");
+          countDI--;
+        }
+      }
+      shuffle(mixedSyllables); // Mistura as sílabas aleatoriamente
+      return mixedSyllables;
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
       }
     }
-    
-    function speakSyllable(index) {
-      if (index >= syllables.length) {
+
+    function updateSyllableInput() {
+      document.getElementById("syllableInput").value = syllables.join(" ");
+    }
+
+    async function playSyllables() {
+      const syllableInput = document.getElementById("syllableInput").value.toLowerCase();
+      const syllables = syllableInput.replace(/,/g, "").split(" ").map(s => s.trim());
+
+      if (syllables.length === 0) {
+        console.log("Digite as sílabas para reproduzir.");
         return;
       }
-      
-      let syllable = syllables[index];
-      let utterance = new SpeechSynthesisUtterance(syllable);
-      
-      let volume = parseFloat(document.getElementById("volumeInput").value);
-      let speed = parseFloat(document.getElementById("speedInput").value);
-      
-      utterance.volume = volume / 10;
-      utterance.rate = speed;
-      
-      window.speechSynthesis.speak(utterance);
-      
-      let frequency = syllable.length;
-      frequencyData.push(frequency);
-      
-      let pauseTime = parseInt(document.getElementById("pauseInput").value);
-      
-      setTimeout(function() {
-        speakSyllable(index + 1);
-      }, pauseTime);
-    }
-    
-    function updateVolume() {
-      let volume = parseFloat(document.getElementById("volumeInput").value);
-      frequencyData.push(volume);
-    }
-    
-    function generateChart() {
-      let ctx = document.getElementById("voiceChart").getContext("2d");
-      
-      if (chart) {
-        chart.destroy();
+
+      const pauseTime = parseFloat(document.getElementById("pauseInput").value);
+
+      for (const syllable of syllables) {
+        await speakSyllable(syllable);
+        await new Promise(resolve => setTimeout(resolve, pauseTime));
       }
-      
+    }
+
+    async function speakSyllable(syllable) {
+      if (!synthesizer) {
+        console.log("O navegador não suporta a síntese de voz.");
+        return;
+      }
+
+      return new Promise((resolve, reject) => {
+        const utterance = new SpeechSynthesisUtterance(syllable);
+
+        const volume = parseFloat(document.getElementById("volumeInput").value);
+        const speed = parseFloat(document.getElementById("speedInput").value);
+
+        utterance.volume = volume / 10;
+        utterance.rate = speed;
+
+        utterance.onend = () => {
+          const frequency = syllable.length;
+          frequencyData.push(frequency);
+          chart.data.labels.push(syllable);
+          chart.data.datasets[0].data.push(frequency);
+          chart.update();
+          resolve();
+        };
+
+        utterance.onerror = (err) => {
+          reject(err);
+        };
+
+        synthesizer.speak(utterance);
+      });
+    }
+
+    function initializeChart() {
+      const ctx = document.getElementById("voiceChart").getContext("2d");
+
       chart = new Chart(ctx, {
-        type: "line",
+        type: "bar",
         data: {
-          labels: Array.from({ length: frequencyData.length }, (_, i) => i + 1),
+          labels: [],
           datasets: [{
-            label: "Projeto BÁ - DI",
+            label: "Frequência da Sílaba",
+            backgroundColor: "rgba(75, 192, 192, 0.7)",
+            borderColor: "rgba(75, 192, 192, 1)",
+            borderWidth: 1,
             data: frequencyData,
-            backgroundColor: "LightSkyBlue",
-            borderColor: "red",
-            borderWidth: 3
-          }]
+          }],
         },
         options: {
           responsive: true,
           scales: {
-            x: {
-              display: true,
-              grid: {
-                color: "white"
-              },
-              title: {
-                display: true,
-                text: "Leitura"
-              }
-            },
             y: {
-              display: true,
-              grid: {
-                color: "white"
-              },
-              title: {
-                display: true,
-                text: "Frequência"
-              },
-              suggestedMin: 0
-            }
-          }
-        }
+              beginAtZero: true,
+            },
+          },
+        },
       });
     }
-    
-    function clearChart() {
-      frequencyData = [];
-      if (chart) {
-        chart.data.datasets[0].data = frequencyData;
-        chart.update();
-      }
+
+    function clearData() {
+      frequencyData.length = 0;
+      chart.data.labels.length = 0;
+      chart.data.datasets[0].data.length = 0;
+      chart.update();
+
+      syllables.length = 0;
+      updateSyllableInput();
+
+      document.getElementById("volumeInput").value = "";
+      document.getElementById("speedInput").value = "";
+      document.getElementById("pauseInput").value = "";
+      document.getElementById("generateCountBÁ").value = "";
+      document.getElementById("generateCountDI").value = "";
+
+      console.log("Dados, gráfico e campos limpos.");
     }
+
+    function saveChart() {
+      const downloadLink = document.createElement("a");
+      downloadLink.href = document.getElementById("voiceChart").toDataURL("image/png");
+      downloadLink.download = "voiceChart.png";
+      downloadLink.click();
+    }
+
+    initializeSynthesizer();
   </script>
 </body>
 </html>

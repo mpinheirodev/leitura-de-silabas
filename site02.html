@@ -1,0 +1,108 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reconhecimento de Fala e Gráfico de Palavras</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Reconhecimento de Fala e Gráfico de Palavras</h1>
+    <button id="btnIniciar">Iniciar Reconhecimento de Fala</button>
+    <button id="btnParar">Parar Reconhecimento de Fala</button>
+    <button id="btnGerarGrafico">Gerar Gráfico</button>
+    <button id="btnLimpar">Limpar Dados</button>
+    <p id="textoReconhecido"></p>
+    <canvas id="grafico"></canvas>
+    
+    <script>
+        const btnIniciar = document.getElementById('btnIniciar');
+        const btnParar = document.getElementById('btnParar');
+        const btnGerarGrafico = document.getElementById('btnGerarGrafico');
+        const btnLimpar = document.getElementById('btnLimpar');
+        const textoReconhecido = document.getElementById('textoReconhecido');
+        const canvas = document.getElementById('grafico');
+        const recognition = new webkitSpeechRecognition(); // Usar a API de reconhecimento de fala do Chrome
+        let palavrasReconhecidas = [];
+        let grafico = null; // Referência para o gráfico
+        
+        btnIniciar.addEventListener('click', () => {
+            recognition.start();
+            textoReconhecido.textContent = "Ouvindo...";
+        });
+        
+        btnParar.addEventListener('click', () => {
+            recognition.stop();
+            textoReconhecido.textContent = "Captura de fala parada.";
+        });
+        
+        recognition.onresult = (event) => {
+            const resultado = event.results[0][0].transcript;
+            textoReconhecido.textContent = resultado;
+
+            // Separação em palavras ou sílabas usando expressão regular
+            const palavrasOuSilabas = resultado.split(/\s+/); // Isso dividirá por espaços em branco
+            palavrasReconhecidas = palavrasOuSilabas.filter(palavra => palavra !== ''); // Remove strings vazias
+        };
+        
+        btnGerarGrafico.addEventListener('click', () => {
+            const palavraFrequencia = contarPalavrasFrequencia(palavrasReconhecidas);
+            gerarGrafico(palavraFrequencia);
+        });
+        
+        btnLimpar.addEventListener('click', () => {
+            textoReconhecido.textContent = "";
+            palavrasReconhecidas = [];
+            if (grafico !== null) {
+                grafico.destroy(); // Limpa o gráfico anterior
+            }
+        });
+        
+        recognition.onerror = (event) => {
+            console.error('Erro no reconhecimento de fala:', event.error);
+            textoReconhecido.textContent = "Erro no reconhecimento de fala.";
+        };
+        
+        function contarPalavrasFrequencia(palavras) {
+            const palavraFrequencia = {};
+            
+            palavras.forEach(palavra => {
+                palavra = palavra.toLowerCase();
+                if (palavraFrequencia[palavra]) {
+                    palavraFrequencia[palavra]++;
+                } else {
+                    palavraFrequencia[palavra] = 1;
+                }
+            });
+            
+            return palavraFrequencia;
+        }
+        
+        function gerarGrafico(palavraFrequencia) {
+            const labels = Object.keys(palavraFrequencia);
+            const data = Object.values(palavraFrequencia);
+            
+            const ctx = canvas.getContext('2d');
+            grafico = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Frequência de Palavras',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
